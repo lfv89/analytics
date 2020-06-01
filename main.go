@@ -1,16 +1,20 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/http"
 )
 
 func handler(conn net.Conn) {
-	b := make([]byte, 512)
+	var err error
+	var req *http.Request
 
-	_, err := conn.Read(b[0:])
+	buf := bufio.NewReader(conn)
+	req, err = http.ReadRequest(buf)
 
 	if err == io.EOF {
 		log.Println("Client disconnected")
@@ -23,7 +27,8 @@ func handler(conn net.Conn) {
 	response := []byte("HTTP/1.1 200 OK\nContent-Type: image/jpeg\nContent-Length: 3\nAccess-Control-Allow-Origin: *\n\nimg")
 
 	fmt.Println("Read:")
-	fmt.Println(string(b))
+	fmt.Println(req.URL)
+	fmt.Println(req.UserAgent())
 
 	fmt.Println("Writing...")
 	if _, err := conn.Write(response); err != nil {
