@@ -35,8 +35,14 @@ func handler(conn net.Conn) {
 		UserAgent: req.UserAgent(),
 	}
 
+	cfg := elasticsearch.Config{
+		Addresses: []string{
+			"http://elastic:9200",
+		},
+	}
+
 	body, _ := json.Marshal(rawBody)
-	es, _ := elasticsearch.NewDefaultClient()
+	es, _ := elasticsearch.NewClient(cfg)
 	res, err := es.Index("events", bytes.NewReader(body))
 
 	fmt.Println(res)

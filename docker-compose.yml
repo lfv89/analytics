@@ -1,6 +1,13 @@
 version: '3.6'
 
 services:
+  app:
+    build: .
+    depends_on:
+      - elastic
+    ports:
+      - 4001:4001
+
   elastic:
     image: elasticsearch:7.7.0
     ports:
@@ -9,6 +16,8 @@ services:
         - node.name=es01
         - discovery.type=single-node
         - cluster.name=es-docker-cluster
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
 
   kibana:
     image: kibana:7.7.0
@@ -18,3 +27,6 @@ services:
       - elastic
     environment:
       ELASTICSEARCH_HOSTS: http://elastic:9200
+
+volumes:
+  es-data:
