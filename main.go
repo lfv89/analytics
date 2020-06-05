@@ -58,10 +58,12 @@ func handler(conn net.Conn) {
 }
 
 func main() {
-	listener, _ := net.Listen("tcp", ":4001")
+	fmt.Println("Listening...")
+	listener, _ := net.Listen("tcp", ":80")
 
 	for {
 		conn, _ := listener.Accept()
+		fmt.Println("Handling...")
 		go handler(conn)
 	}
 }

@@ -8,4 +8,4 @@ RUN go install
 
 ENTRYPOINT /go/bin/analytics
 
-EXPOSE 4001
+EXPOSE 80
