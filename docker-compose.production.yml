@@ -1,0 +1,52 @@
+version: '3.0'
+
+services:
+  app:
+    image: lfv89/analytics:0.2
+    ports:
+      - 80:80
+    depends_on:
+      - elastic
+    environment:
+      - PORT=80
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: analytics
+        awslogs-region: us-east-1
+        awslogs-stream-prefix: app
+
+  elastic:
+    image: elasticsearch:7.7.0
+    ports:
+      - 9200:9200
+    environment:
+        - node.name=es01
+        - discovery.type=single-node
+        - cluster.name=es-docker-cluster
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: analytics
+        awslogs-region: us-east-1
+        awslogs-stream-prefix: elastic
+
+  kibana:
+    image: kibana:7.7.0
+    ports:
+      - 5601:5601
+    depends_on:
+      - elastic
+    environment:
+      ELASTICSEARCH_HOSTS: http://elastic:9200
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: analytics
+        awslogs-region: us-east-1
+        awslogs-stream-prefix: kibana
+
+volumes:
+  es-data:

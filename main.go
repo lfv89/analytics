@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/elastic/go-elasticsearch/v7"
 )
@@ -16,6 +17,27 @@ import (
 type Event struct {
 	Source    string `json:"source"`
 	UserAgent string `json:"userAgent"`
+}
+
+func main() {
+	fmt.Println("Listening...")
+	listener, _ := net.Listen("tcp", getPort())
+
+	for {
+		conn, _ := listener.Accept()
+		fmt.Println("Handling...")
+		go handler(conn)
+	}
+}
+
+func getPort() string {
+	value := os.Getenv("PORT")
+
+	if len(value) == 0 {
+		return "4001"
+	}
+
+	return value
 }
 
 func handler(conn net.Conn) {
@@ -55,15 +77,4 @@ func handler(conn net.Conn) {
 
 	fmt.Println("Closing...")
 	conn.Close()
-}
-
-func main() {
-	fmt.Println("Listening...")
-	listener, _ := net.Listen("tcp", ":80")
-
-	for {
-		conn, _ := listener.Accept()
-		fmt.Println("Handling...")
-		go handler(conn)
-	}
 }
