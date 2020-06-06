@@ -1,8 +1,8 @@
 version: '3.0'
 
 services:
-  app:
-    image: lfv89/analytics:0.2
+  web:
+    image: lfv89/analytics-web:0.1
     ports:
       - 80:80
     depends_on:
@@ -14,7 +14,22 @@ services:
       options:
         awslogs-group: analytics
         awslogs-region: us-east-1
-        awslogs-stream-prefix: app
+        awslogs-stream-prefix: web
+
+  api:
+    image: lfv89/analytics-api:0.1
+    ports:
+      - 8080:8080
+    depends_on:
+      - elastic
+    environment:
+      - PORT=8080
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: analytics
+        awslogs-region: us-east-1
+        awslogs-stream-prefix: api
 
   elastic:
     image: elasticsearch:7.7.0
@@ -32,21 +47,6 @@ services:
         awslogs-group: analytics
         awslogs-region: us-east-1
         awslogs-stream-prefix: elastic
-
-  kibana:
-    image: kibana:7.7.0
-    ports:
-      - 5601:5601
-    depends_on:
-      - elastic
-    environment:
-      ELASTICSEARCH_HOSTS: http://elastic:9200
-    logging:
-      driver: awslogs
-      options:
-        awslogs-group: analytics
-        awslogs-region: us-east-1
-        awslogs-stream-prefix: kibana
 
 volumes:
   es-data:

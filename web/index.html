@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Analytics</title>
+  </head>
+
+  <body>
+    <table>
+      <thead>
+        <th>
+          <td>ID</td>
+          <td>Source</td>
+          <td>User Agent</td>
+        </th>
+      </thead>
+
+      <tbody>
+        {{range .Hits}}
+          <tr>
+            <td>{{ .ID }}</td>
+            <td>{{ .Source }}</td>
+            <td>{{ .UserAgent }}</td>
+          </tr>
+        {{end}}
+      </tbody>
+    </table>
+
+  </body>
+</html>

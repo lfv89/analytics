@@ -4,8 +4,8 @@ ADD . /go/src/analytics
 WORKDIR /go/src/analytics
 
 RUN go mod download
-RUN go install
+RUN go build -o web-server cmd/analytics/web.go
 
-ENTRYPOINT /go/bin/analytics
+ENTRYPOINT /go/src/analytics/web-server
 
-EXPOSE 4001
+EXPOSE 80

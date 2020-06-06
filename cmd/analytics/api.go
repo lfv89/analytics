@@ -21,7 +21,11 @@ type Event struct {
 
 func main() {
 	fmt.Println("Listening...")
-	listener, _ := net.Listen("tcp", getPort())
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", getPort()))
+
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	for {
 		conn, _ := listener.Accept()

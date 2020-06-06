@@ -1,8 +1,19 @@
 version: '3.6'
 
 services:
-  app:
-    build: .
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    depends_on:
+      - elastic
+    ports:
+      - 4002:4002
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     depends_on:
       - elastic
     ports:
