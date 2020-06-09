@@ -5,53 +5,87 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"os"
 
+	"analytics/configs"
 	store "analytics/private"
+	"analytics/private/socket"
 
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/gorilla/websocket"
+	"github.com/kelseyhightower/envconfig"
 )
 
-func main() {
-	http.HandleFunc("/", Index)
-	http.ListenAndServe(fmt.Sprintf(":%s", getPort()), nil)
+var hub *socket.Hub
+var c configs.Config
+
+func init() {
+	envconfig.Process("analytics", &c)
 }
 
-func getPort() string {
-	value := os.Getenv("PORT")
+func main() {
+	hub = socket.NewHub()
+	go hub.Run()
 
-	if len(value) == 0 {
-		return "4002"
-	}
+	http.HandleFunc("/", Index)
+	http.HandleFunc("/notify", Notify)
 
-	return value
+	http.HandleFunc("/subscribe", func(w http.ResponseWriter, r *http.Request) {
+		Subscribe(hub, w, r)
+	})
+
+	http.ListenAndServe(fmt.Sprintf(":%s", configs.GetPort("4002")), nil)
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
 func Index(w http.ResponseWriter, r *http.Request) {
 	cfg := elasticsearch.Config{
 		Addresses: []string{
-			"http://elastic:9200",
+			c.Elastic.URL,
 		},
 	}
 
-	es, _ := elasticsearch.NewClient(cfg)
-	config := store.StoreConfig{Client: es}
-	myStore, _ := store.NewStore(config)
-	search := Search{store: myStore}
-	results, err := search.getResults("")
+	client, _ := elasticsearch.NewClient(cfg)
+	config := store.StoreConfig{Client: client}
 
-	if err != nil {
-		log.Fatal(err)
+	myStore, _ := store.NewStore(config)
+	results, resultsErr := myStore.Search("")
+
+	if resultsErr != nil {
+		log.Fatal(resultsErr)
 	}
 
 	tmpl, _ := template.ParseFiles("web/index.html")
 	tmpl.Execute(w, results)
 }
 
-type Search struct {
-	store *store.Store
+func Notify(w http.ResponseWriter, r *http.Request) {
+	clientId := 1
+	clients := hub.Clients
+
+	for client, _ := range clients {
+		if client.Id == clientId {
+			client.Send <- []byte("Only for client with ID == 1")
+		}
+	}
 }
 
-func (s *Search) getResults(query string) (*store.SearchResults, error) {
-	return s.store.Search(query)
+func Subscribe(hub *socket.Hub, w http.ResponseWriter, r *http.Request) {
+	clientId := len(hub.Clients) + 1
+	conn, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := &socket.Client{Id: clientId, Hub: hub, Conn: conn, Send: make(chan []byte, 256)}
+
+	client.Hub.Register <- client
+
+	go client.WritePump()
+	go client.ReadPump()
 }

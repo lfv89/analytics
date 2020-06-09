@@ -9,6 +9,7 @@ services:
       - elastic
     environment:
       - PORT=80
+      - ELASTIC_URL=elastic:9200
     logging:
       driver: awslogs
       options:
@@ -24,6 +25,7 @@ services:
       - elastic
     environment:
       - PORT=8080
+      - ELASTIC_URL=elastic:9200
     logging:
       driver: awslogs
       options:

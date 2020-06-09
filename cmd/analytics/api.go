@@ -1,6 +1,7 @@
 package main
 
 import (
+	"analytics/configs"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -9,19 +10,25 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/kelseyhightower/envconfig"
 )
+
+var c configs.Config
 
 type Event struct {
 	Source    string `json:"source"`
 	UserAgent string `json:"userAgent"`
 }
 
+func init() {
+	envconfig.Process("analytics", &c)
+}
+
 func main() {
 	fmt.Println("Listening...")
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", getPort()))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", configs.GetPort("4001")))
 
 	if err != nil {
 		log.Fatalln(err)
@@ -30,21 +37,11 @@ func main() {
 	for {
 		conn, _ := listener.Accept()
 		fmt.Println("Handling...")
-		go handler(conn)
+		go Handler(conn)
 	}
 }
 
-func getPort() string {
-	value := os.Getenv("PORT")
-
-	if len(value) == 0 {
-		return "4001"
-	}
-
-	return value
-}
-
-func handler(conn net.Conn) {
+func Handler(conn net.Conn) {
 	buf := bufio.NewReader(conn)
 	req, err := http.ReadRequest(buf)
 
@@ -63,13 +60,15 @@ func handler(conn net.Conn) {
 
 	cfg := elasticsearch.Config{
 		Addresses: []string{
-			"http://elastic:9200",
+			c.Elastic.URL,
 		},
 	}
 
 	body, _ := json.Marshal(rawBody)
 	es, _ := elasticsearch.NewClient(cfg)
 	res, err := es.Index("events", bytes.NewReader(body))
+
+	http.Post(c.Web.NotifyURL, "text/plain", bytes.NewBuffer([]byte("ping")))
 
 	fmt.Println(res)
 	fmt.Println(err)
