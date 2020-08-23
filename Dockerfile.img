@@ -1,0 +1,11 @@
+FROM golang:1.13-alpine
+
+ADD . /go/src/analytics
+WORKDIR /go/src/analytics
+
+RUN go mod download
+RUN go build -o img-server cmd/analytics/img.go
+
+ENTRYPOINT /go/src/analytics/img-server
+
+EXPOSE 4001

@@ -8,4 +8,4 @@ RUN go build -o api-server cmd/analytics/api.go
 
 ENTRYPOINT /go/src/analytics/api-server
 
-EXPOSE 4001
+EXPOSE 4002

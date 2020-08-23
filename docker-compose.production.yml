@@ -1,8 +1,8 @@
 version: '3.0'
 
 services:
-  web:
-    image: lfv89/analytics-web:0.1
+  api:
+    image: lfv89/analytics-api:0.2
     ports:
       - 80:80
     depends_on:
@@ -15,10 +15,10 @@ services:
       options:
         awslogs-group: analytics
         awslogs-region: us-east-1
-        awslogs-stream-prefix: web
+        awslogs-stream-prefix: api
 
-  api:
-    image: lfv89/analytics-api:0.1
+  img:
+    image: lfv89/analytics-img:0.2
     ports:
       - 8080:8080
     depends_on:
@@ -31,7 +31,7 @@ services:
       options:
         awslogs-group: analytics
         awslogs-region: us-east-1
-        awslogs-stream-prefix: api
+        awslogs-stream-prefix: img
 
   elastic:
     image: elasticsearch:7.7.0

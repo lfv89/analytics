@@ -1,83 +1,91 @@
 package main
 
 import (
-	"analytics/configs"
-	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
+	"html/template"
 	"log"
-	"net"
 	"net/http"
 
+	"analytics/configs"
+	store "analytics/private"
+	"analytics/private/socket"
+
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/gorilla/websocket"
 	"github.com/kelseyhightower/envconfig"
 )
 
+var hub *socket.Hub
 var c configs.Config
-
-type Event struct {
-	Source    string `json:"source"`
-	UserAgent string `json:"userAgent"`
-}
 
 func init() {
 	envconfig.Process("analytics", &c)
 }
 
 func main() {
-	fmt.Println("Listening...")
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", configs.GetPort("4001")))
+	hub = socket.NewHub()
+	go hub.Run()
 
-	if err != nil {
-		log.Fatalln(err)
-	}
+	http.HandleFunc("/", Index)
+	http.HandleFunc("/notify", Notify)
 
-	for {
-		conn, _ := listener.Accept()
-		fmt.Println("Handling...")
-		go Handler(conn)
-	}
+	http.HandleFunc("/subscribe", func(w http.ResponseWriter, r *http.Request) {
+		Subscribe(hub, w, r)
+	})
+
+	http.ListenAndServe(fmt.Sprintf(":%s", configs.GetPort("4002")), nil)
 }
 
-func Handler(conn net.Conn) {
-	buf := bufio.NewReader(conn)
-	req, err := http.ReadRequest(buf)
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
-	if err == io.EOF {
-		log.Println("Client disconnected")
-	}
-
-	if err != nil {
-		log.Println("An Unexpected error ocurred")
-	}
-
-	rawBody := &Event{
-		Source:    req.Referer(),
-		UserAgent: req.UserAgent(),
-	}
-
+func Index(w http.ResponseWriter, r *http.Request) {
 	cfg := elasticsearch.Config{
 		Addresses: []string{
 			c.Elastic.URL,
 		},
 	}
 
-	body, _ := json.Marshal(rawBody)
-	es, _ := elasticsearch.NewClient(cfg)
-	res, err := es.Index("events", bytes.NewReader(body))
+	client, _ := elasticsearch.NewClient(cfg)
+	config := store.StoreConfig{Client: client}
 
-	http.Post(c.Web.NotifyURL, "text/plain", bytes.NewBuffer([]byte("ping")))
+	myStore, _ := store.NewStore(config)
+	results, resultsErr := myStore.Search("")
 
-	fmt.Println(res)
-	fmt.Println(err)
-
-	response := []byte("HTTP/1.1 200 OK\nContent-Type: image/jpeg\nContent-Length: 3\nAccess-Control-Allow-Origin: *\n\nimg")
-	if _, err := conn.Write(response); err != nil {
-		log.Fatalln("Unable to write data")
+	if resultsErr != nil {
+		log.Fatal(resultsErr)
 	}
 
-	fmt.Println("Closing...")
-	conn.Close()
+	tmpl, _ := template.ParseFiles("web/index.html")
+	tmpl.Execute(w, results)
+}
+
+func Notify(w http.ResponseWriter, r *http.Request) {
+	clientId := 1
+	clients := hub.Clients
+
+	for client, _ := range clients {
+		if client.Id == clientId {
+			client.Send <- []byte("Only for client with ID == 1")
+		}
+	}
+}
+
+func Subscribe(hub *socket.Hub, w http.ResponseWriter, r *http.Request) {
+	clientId := len(hub.Clients) + 1
+	conn, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := &socket.Client{Id: clientId, Hub: hub, Conn: conn, Send: make(chan []byte, 256)}
+
+	client.Hub.Register <- client
+
+	go client.WritePump()
+	go client.ReadPump()
 }
