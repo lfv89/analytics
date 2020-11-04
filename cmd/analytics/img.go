@@ -1,7 +1,6 @@
 package main
 
 import (
-	"analytics/configs"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -11,23 +10,19 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/lfv89/analytics/private"
+	"github.com/lfv89/analytics/configs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/kelseyhightower/envconfig"
 )
 
 var c configs.Config
 
-type Event struct {
-	Source    string `json:"source"`
-	UserAgent string `json:"userAgent"`
-}
-
 func init() {
 	envconfig.Process("analytics", &c)
 }
 
 func main() {
-	fmt.Println("Listening...")
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", configs.GetPort("4001")))
 
 	if err != nil {
@@ -36,7 +31,6 @@ func main() {
 
 	for {
 		conn, _ := listener.Accept()
-		fmt.Println("Handling...")
 		go Handler(conn)
 	}
 }
@@ -53,7 +47,7 @@ func Handler(conn net.Conn) {
 		log.Println("An Unexpected error ocurred")
 	}
 
-	rawBody := &Event{
+	rawBody := &private.Event{
 		Source:    req.Referer(),
 		UserAgent: req.UserAgent(),
 	}
@@ -68,7 +62,7 @@ func Handler(conn net.Conn) {
 	es, _ := elasticsearch.NewClient(cfg)
 	res, err := es.Index("events", bytes.NewReader(body))
 
-	http.Post(c.Web.NotifyURL, "text/plain", bytes.NewBuffer([]byte("ping")))
+	http.Post(c.Web.NotifyURL, "text/plain", bytes.NewBuffer(body))
 
 	fmt.Println(res)
 	fmt.Println(err)
@@ -78,6 +72,5 @@ func Handler(conn net.Conn) {
 		log.Fatalln("Unable to write data")
 	}
 
-	fmt.Println("Closing...")
 	conn.Close()
 }

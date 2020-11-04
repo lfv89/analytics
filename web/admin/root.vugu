@@ -1,0 +1,98 @@
+<div>
+  <main role="main" class="container text-center">
+    <div class="mt-5">
+      <h1>Analytics</h1>
+
+      <ul vg-for='i, hit := range c.Data.Hits'>
+        <li vg-content="hit.ID"></li>
+        <li vg-content="hit.Source"></li>
+        <li vg-content="hit.UserAgent"></li>
+      </ul>
+    </div>
+  </main>
+</div>
+
+<script type="application/x-go">
+  import "log"
+  import "fmt"
+  import "context"
+  import "time"
+  import "net/http"
+  import "encoding/json"
+  import "nhooyr.io/websocket"
+  import "nhooyr.io/websocket/wsjson"
+
+  type Root struct {
+      Data Data `vugu:"data"`
+  }
+
+  type Data struct {
+      Hits []Hit `json:"hits"`
+  }
+
+  type Hit struct {
+      ID string `json:"_id"`
+      Source string `json:"source"`
+      UserAgent string `json:"userAgent"`
+  }
+
+  const BASE_URL = "http://localhost:4002"
+  const SUBSCRIPTION_ENDPOINT = "ws://localhost:4002/subscribe"
+
+  func (c *Root) Init(ctx vugu.InitCtx) {
+
+      // first list loading (HTTP)
+      go func() {
+          resp, err := http.Get(BASE_URL)
+
+          if err != nil {
+              log.Printf("Error fetching: %v", err)
+              return
+          }
+
+          defer resp.Body.Close()
+
+          var data Data
+
+          err = json.NewDecoder(resp.Body).Decode(&data)
+
+          if err != nil {
+              log.Printf("Error decoding response: %v", err)
+              return
+          }
+
+          ctx.EventEnv().Lock()
+          c.Data = data
+          ctx.EventEnv().UnlockRender()
+      }()
+
+      // subsequent list loading (WSS)
+      go func() {
+        ktx, cancel := context.WithTimeout(context.Background(), time.Minute)
+        defer cancel()
+
+        ws, _, err := websocket.Dial(ktx, SUBSCRIPTION_ENDPOINT, nil)
+        if err != nil {
+          panic("broke at first")
+        }
+
+        defer ws.Close(websocket.StatusInternalError, "")
+
+        for {
+          log.Printf("im inside the loop")
+
+          v := Hit{}
+          err := wsjson.Read(ktx, ws, &v)
+          if err != nil {
+            panic("broke at second")
+          }
+
+          ctx.EventEnv().Lock()
+          c.Data.Hits = append(c.Data.Hits, v)
+          ctx.EventEnv().UnlockRender()
+        }
+
+        ws.Close(websocket.StatusNormalClosure, "")
+      }()
+  }
+</script>

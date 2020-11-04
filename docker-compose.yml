@@ -10,16 +10,16 @@ services:
   #   ports:
   #     - 4002:4002
 
-  img:
-    build:
-      context: .
-      dockerfile: Dockerfile.img
-    depends_on:
-      - elastic
-    ports:
-      - 4001:4001
-    extra_hosts:
-      - localhost:192.168.0.6
+  # img:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.img
+  #   depends_on:
+  #     - elastic
+  #   ports:
+  #     - 4001:4001
+  #   extra_hosts:
+  #     - localhost:192.168.0.6
 
   elastic:
     image: elasticsearch:7.7.0

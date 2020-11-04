@@ -1,14 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 
-	"analytics/configs"
-	store "analytics/private"
-	"analytics/private/socket"
+	"github.com/lfv89/analytics/configs"
+	"github.com/lfv89/analytics/private"
+	"github.com/lfv89/analytics/private/socket"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/gorilla/websocket"
@@ -39,9 +41,15 @@ func main() {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 func Index(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	cfg := elasticsearch.Config{
 		Addresses: []string{
 			c.Elastic.URL,
@@ -49,26 +57,44 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client, _ := elasticsearch.NewClient(cfg)
-	config := store.StoreConfig{Client: client}
+	config := private.StoreConfig{Client: client}
 
-	myStore, _ := store.NewStore(config)
+	myStore, _ := private.NewStore(config)
 	results, resultsErr := myStore.Search("")
 
 	if resultsErr != nil {
 		log.Fatal(resultsErr)
 	}
 
-	tmpl, _ := template.ParseFiles("web/index.html")
-	tmpl.Execute(w, results)
+	json.NewEncoder(w).Encode(results)
 }
 
 func Notify(w http.ResponseWriter, r *http.Request) {
 	clientId := 1
 	clients := hub.Clients
 
+	// read JSON from body
+	b, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// unmarshal JSON to Event
+	event := private.Event{}
+	err = json.Unmarshal(b, &event)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
 	for client, _ := range clients {
 		if client.Id == clientId {
-			client.Send <- []byte("Only for client with ID == 1")
+			reqBodyBytes := new(bytes.Buffer)
+			json.NewEncoder(reqBodyBytes).Encode(event)
+
+			client.Send <- reqBodyBytes.Bytes()
 		}
 	}
 }
