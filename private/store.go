@@ -123,10 +123,10 @@ func (s *Store) Search(query string, after ...string) (*SearchResults, error) {
 
 const searchAll = `
 	"query" : { "match_all" : {} },
-	"size" : 25
+	"size" : 100
 `
 
 const searchMatch = `
 	"query" : { "match_all" : {} },
-	"size" : 25
+	"size" : 100
 `

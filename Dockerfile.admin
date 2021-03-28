@@ -1,0 +1,10 @@
+FROM golang:1.14-alpine
+
+ADD . /go/src/analytics
+WORKDIR /go/src/analytics
+
+WORKDIR /go/src/analytics/web/admin
+RUN go run dist.go
+
+WORKDIR /go/src/analytics/web/admin/dist
+ENTRYPOINT ./server

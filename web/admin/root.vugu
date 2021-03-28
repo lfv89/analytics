@@ -1,7 +1,7 @@
 <div>
   <main role="main" class="container text-center">
     <div class="mt-5">
-      <h1>Analytics</h1>
+      <h1 vg-content="len(c.Data.Hits)"></h1>
 
       <ul vg-for='i, hit := range c.Data.Hits'>
         <li vg-content="hit.ID"></li>

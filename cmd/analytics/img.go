@@ -10,10 +10,10 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/lfv89/analytics/private"
-	"github.com/lfv89/analytics/configs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lfv89/analytics/configs"
+	"github.com/lfv89/analytics/private"
 )
 
 var c configs.Config

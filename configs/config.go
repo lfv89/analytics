@@ -6,6 +6,6 @@ type Config struct {
 	}
 
 	Web struct {
-		NotifyURL string `default:"http://localhost:4002/notify" envconfig:"WEB_NOTIFY_URL"`
+		NotifyURL string `default:"http://api:4002/notify" envconfig:"WEB_NOTIFY_URL"`
 	}
 }

@@ -7,5 +7,3 @@ RUN go mod download
 RUN go build -o api-server cmd/analytics/api.go
 
 ENTRYPOINT /go/src/analytics/api-server
-
-EXPOSE 4002

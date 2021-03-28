@@ -1,25 +1,32 @@
 version: '3.6'
 
 services:
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.api
-  #   depends_on:
-  #     - elastic
-  #   ports:
-  #     - 4002:4002
+  img:
+    build:
+      context: .
+      dockerfile: Dockerfile.img
+    depends_on:
+      - elastic
+    ports:
+      - 4001:4001
 
-  # img:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.img
-  #   depends_on:
-  #     - elastic
-  #   ports:
-  #     - 4001:4001
-  #   extra_hosts:
-  #     - localhost:192.168.0.6
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    depends_on:
+      - elastic
+    ports:
+      - 4002:4002
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    depends_on:
+      - elastic
+    ports:
+      - 4003:4003
 
   elastic:
     image: elasticsearch:7.7.0
