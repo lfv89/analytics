@@ -4,9 +4,9 @@
       <h1 vg-content="len(c.Data.Hits)"></h1>
 
       <ul vg-for='i, hit := range c.Data.Hits'>
-        <li vg-content="hit.ID"></li>
-        <li vg-content="hit.Source"></li>
-        <li vg-content="hit.UserAgent"></li>
+        <li>ID: <span vg-content="hit.ID"></span> </li>
+        <li>Source: <span vg-content="hit.Source"></span> </li>
+        <li>UserAgent: <span vg-content="hit.UserAgent"></span> </li>
       </ul>
     </div>
   </main>

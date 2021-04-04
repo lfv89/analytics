@@ -70,7 +70,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func Notify(w http.ResponseWriter, r *http.Request) {
-	clientId := 1
 	clients := hub.Clients
 
 	// read JSON from body
@@ -90,7 +89,7 @@ func Notify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for client, _ := range clients {
-		if client.Id == clientId {
+		if client.Id == event.ClientID {
 			reqBodyBytes := new(bytes.Buffer)
 			json.NewEncoder(reqBodyBytes).Encode(event)
 
@@ -100,7 +99,7 @@ func Notify(w http.ResponseWriter, r *http.Request) {
 }
 
 func Subscribe(hub *socket.Hub, w http.ResponseWriter, r *http.Request) {
-	clientId := len(hub.Clients) + 1
+	clientId := 123 // get from session later
 	conn, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {

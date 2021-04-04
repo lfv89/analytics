@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/kelseyhightower/envconfig"
@@ -47,13 +48,16 @@ func Handler(conn net.Conn) {
 		log.Println("An Unexpected error ocurred")
 	}
 
-	fmt.Println(">>> FUUUCK me")
-	fmt.Println(req.URL)
+	id, _ := strconv.Atoi(req.URL.Query()["clientId"][0])
+
+	fmt.Println(">>>")
+	fmt.Println(req.Header)
 	fmt.Println(">>>")
 
 	rawBody := &private.Event{
 		Source:    req.Referer(),
 		UserAgent: req.UserAgent(),
+		ClientID:  id,
 	}
 
 	cfg := elasticsearch.Config{
