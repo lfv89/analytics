@@ -2,31 +2,39 @@ version: '3.6'
 
 services:
   img:
-    build:
-      context: .
-      dockerfile: Dockerfile.img
     depends_on:
       - elastic
     ports:
       - 4001:4001
-
-  api:
+    volumes:
+      - .:/go/src/analytics
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile.img
+    command: go run cmd/analytics/img.go
+
+  api:
     depends_on:
       - elastic
     ports:
       - 4002:4002
-
-  admin:
+    volumes:
+      - .:/go/src/analytics
     build:
       context: .
-      dockerfile: Dockerfile.admin
+      dockerfile: Dockerfile.api
+    command: go run cmd/analytics/api.go
+
+  admin:
     depends_on:
       - elastic
     ports:
       - 4003:4003
+    volumes:
+      - .:/go/src/analytics
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
 
   elastic:
     image: elasticsearch:7.7.0

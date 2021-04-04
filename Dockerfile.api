@@ -1,9 +1,9 @@
 FROM golang:1.13-alpine
 
-ADD . /go/src/analytics
+COPY . /go/src/analytics
 WORKDIR /go/src/analytics
 
 RUN go mod download
 RUN go build -o api-server cmd/analytics/api.go
 
-ENTRYPOINT /go/src/analytics/api-server
+CMD /go/src/analytics/api-server

@@ -47,6 +47,10 @@ func Handler(conn net.Conn) {
 		log.Println("An Unexpected error ocurred")
 	}
 
+	fmt.Println(">>> FUUUCK me")
+	fmt.Println(req.URL)
+	fmt.Println(">>>")
+
 	rawBody := &private.Event{
 		Source:    req.Referer(),
 		UserAgent: req.UserAgent(),

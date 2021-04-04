@@ -1,6 +1,6 @@
 FROM golang:1.14-alpine
 
-ADD . /go/src/analytics
+COPY . /go/src/analytics
 WORKDIR /go/src/analytics
 
 WORKDIR /go/src/analytics/web/admin
