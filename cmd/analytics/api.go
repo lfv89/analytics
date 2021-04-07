@@ -12,15 +12,16 @@ import (
 	"github.com/lfv89/analytics/private"
 	"github.com/lfv89/analytics/private/socket"
 
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/gorilla/websocket"
 	"github.com/kelseyhightower/envconfig"
 )
 
 var hub *socket.Hub
 var c configs.Config
+var eventStore *private.Store
 
 func init() {
+	eventStore = private.BuildStore()
 	envconfig.Process("analytics", &c)
 }
 
@@ -50,17 +51,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	cfg := elasticsearch.Config{
-		Addresses: []string{
-			c.Elastic.URL,
-		},
-	}
-
-	client, _ := elasticsearch.NewClient(cfg)
-	config := private.StoreConfig{Client: client}
-
-	myStore, _ := private.NewStore(config)
-	results, resultsErr := myStore.Search("")
+	results, resultsErr := eventStore.Search("")
 
 	if resultsErr != nil {
 		log.Fatal(resultsErr)

@@ -1,13 +1,30 @@
 package private
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/lfv89/analytics/configs"
 )
+
+var c configs.Config
+
+const searchAll = `
+	"query" : { "match_all" : {} },
+	"size" : 100
+`
+
+const searchMatch = `
+	"query" : { "match_all" : {} },
+	"size" : 100
+`
 
 type Hit struct {
 	ID        string `json:"_id"`
@@ -30,7 +47,24 @@ type SearchResults struct {
 	Total int    `json:"total"`
 }
 
-func NewStore(c StoreConfig) (*Store, error) {
+func init() {
+	envconfig.Process("analytics", &c)
+}
+
+func BuildStore() *Store {
+	cfg := elasticsearch.Config{
+		Addresses: []string{
+			c.Elastic.URL,
+		},
+	}
+
+	client, _ := elasticsearch.NewClient(cfg)
+	eventStore, _ := newStore(StoreConfig{Client: client})
+
+	return eventStore
+}
+
+func newStore(c StoreConfig) (*Store, error) {
 	indexName := c.IndexName
 
 	if indexName == "" {
@@ -58,8 +92,13 @@ func (s *Store) buildQuery(query string, after ...string) io.Reader {
 
 	b.WriteString("\n}")
 
-	// fmt.Printf("%s\n", b.String())
 	return strings.NewReader(b.String())
+}
+
+func (s *Store) Index(indexName string, body []byte) *esapi.Response {
+	result, _ := s.es.Index("events", bytes.NewReader(body))
+
+	return result
 }
 
 func (s *Store) Search(query string, after ...string) (*SearchResults, error) {
@@ -120,13 +159,3 @@ func (s *Store) Search(query string, after ...string) (*SearchResults, error) {
 
 	return &results, nil
 }
-
-const searchAll = `
-	"query" : { "match_all" : {} },
-	"size" : 100
-`
-
-const searchMatch = `
-	"query" : { "match_all" : {} },
-	"size" : 100
-`

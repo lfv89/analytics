@@ -11,15 +11,16 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/lfv89/analytics/configs"
 	"github.com/lfv89/analytics/private"
 )
 
 var c configs.Config
+var eventStore *private.Store
 
 func init() {
+	eventStore = private.BuildStore()
 	envconfig.Process("analytics", &c)
 }
 
@@ -50,25 +51,14 @@ func Handler(conn net.Conn) {
 
 	id, _ := strconv.Atoi(req.URL.Query()["clientId"][0])
 
-	fmt.Println(">>>")
-	fmt.Println(req.Header)
-	fmt.Println(">>>")
-
 	rawBody := &private.Event{
 		Source:    req.Referer(),
 		UserAgent: req.UserAgent(),
 		ClientID:  id,
 	}
 
-	cfg := elasticsearch.Config{
-		Addresses: []string{
-			c.Elastic.URL,
-		},
-	}
-
 	body, _ := json.Marshal(rawBody)
-	es, _ := elasticsearch.NewClient(cfg)
-	res, err := es.Index("events", bytes.NewReader(body))
+	res := eventStore.Index("events", body)
 
 	http.Post(c.Web.NotifyURL, "text/plain", bytes.NewBuffer(body))
 

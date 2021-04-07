@@ -25,16 +25,16 @@ services:
       dockerfile: Dockerfile.api
     command: go run cmd/analytics/api.go
 
-  admin:
-    depends_on:
-      - elastic
-    ports:
-      - 4003:4003
-    volumes:
-      - .:/go/src/analytics
-    build:
-      context: .
-      dockerfile: Dockerfile.admin
+  # admin:
+  #   depends_on:
+  #     - elastic
+  #   ports:
+  #     - 4003:4003
+  #   volumes:
+  #     - .:/go/src/analytics
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.admin
 
   elastic:
     image: elasticsearch:7.7.0
